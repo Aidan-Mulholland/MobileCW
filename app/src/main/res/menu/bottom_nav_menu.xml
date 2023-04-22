@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="utf-8"?>
+<menu xmlns:android="http://schemas.android.com/apk/res/android">
+    <item
+        android:id="@+id/guide"
+        android:icon="@drawable/guide"
+        android:title="Guide" />
+    <item
+        android:id="@+id/sleep"
+        android:icon="@drawable/sleep"
+        android:title="Sleep" />
+    <item
+        android:id="@+id/activity_main"
+        android:icon="@drawable/goals"
+        android:title="Goals" />
+    <item
+        android:id="@+id/habits"
+        android:icon="@drawable/habits"
+        android:title="Habits" />
+    <item
+        android:id="@+id/journal"
+        android:icon="@drawable/journal"
+        android:title="Journal" />
+
+</menu>

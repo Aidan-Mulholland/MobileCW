@@ -17,7 +17,7 @@ import java.util.List;
 public class DatabaseHelper extends SQLiteOpenHelper {
 
     public static final String DB_NAME = "coursework.db";
-    public static final int DB_VERSION = 12;
+    public static final int DB_VERSION = 15;
     public DatabaseHelper(@Nullable Context context, String name, SQLiteDatabase.CursorFactory factory, int version) {
         super(context, DB_NAME, null, DB_VERSION);
     }
@@ -59,7 +59,7 @@ public class DatabaseHelper extends SQLiteOpenHelper {
                 DatabaseContract.Goal_Table.COLUMN_PROGRESS + " INT, " +
                 DatabaseContract.Goal_Table.COLUMN_TYPE + " INT, " +
                 DatabaseContract.Goal_Table.COLUMN_PARENT + " INT, " +
-                "FOREIGN KEY(" + DatabaseContract.Goal_Table.COLUMN_TYPE + ") REFERENCES " + DatabaseContract.Type_Table.COLUMN_TYPE + ");";
+                "FOREIGN KEY(" + DatabaseContract.Goal_Table.COLUMN_TYPE + ") REFERENCES " + DatabaseContract.Type_Table.COLUMN_TYPE + ")";
         db.execSQL(query);
 
         // Alarm table

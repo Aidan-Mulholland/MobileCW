@@ -1,8 +1,13 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools">
-
+    <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
+    <uses-permission android:name="android.permission.WAKE_LOCK" />
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
     <uses-permission android:name="android.permission.VIBRATE" />
+    <uses-permission android:name="android.permission.SCHEDULE_EXACT_ALARM"/>
+    <uses-permission android:name="android.permission.USE_EXACT_ALARM"/>
+    <uses-permission android:name="android.alarm.permission.SET_ALARM"/>
 
     <application
         android:allowBackup="true"
@@ -13,6 +18,12 @@
         android:supportsRtl="true"
         android:theme="@style/Theme.Coursework"
         tools:targetApi="31">
+        <activity
+            android:name=".EditGoalActivity"
+            android:exported="false" />
+        <activity
+            android:name=".GoalActivity"
+            android:exported="false" />
         <activity
             android:name=".GuideActivity"
             android:exported="false" />
@@ -41,12 +52,16 @@
             </intent-filter>
         </activity>
 
-        <receiver android:name=".AlarmReceiver" />
         <provider
-            android:name="com.example.coursework.ContentProvider"
+            android:name=".ContentProvider"
             android:authorities="com.example.coursework"
-            android:enabled="true"
-            ></provider>
+            android:enabled="true" />
+
+        <receiver
+            android:name=".AlarmReceiver"
+            android:exported="true"
+            android:enabled="true">
+        </receiver>
     </application>
 
 </manifest>

@@ -20,7 +20,6 @@ public class GoalModel {
         this.progress = progress;
         this.description = description;
         this.type = type;
-        this.parent = parent;
     }
 
     @Override
@@ -65,5 +64,19 @@ public class GoalModel {
 
     public void setDescription(String description) {
         this.description = description;
+    }
+
+    public int getParent() { return parent; }
+
+    public void setParent(int parent) {
+        this.parent = parent;
+    }
+
+    public String getType() {
+        return type;
+    }
+
+    public void setType(String type) {
+        this.type = type;
     }
 }

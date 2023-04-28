@@ -6,9 +6,11 @@ import androidx.appcompat.app.AppCompatActivity;
 import android.annotation.SuppressLint;
 import android.content.ContentValues;
 import android.content.Intent;
+import android.content.SharedPreferences;
 import android.database.Cursor;
 import android.net.Uri;
 import android.os.Bundle;
+import android.provider.ContactsContract;
 import android.view.MenuItem;
 import android.view.View;
 import android.widget.AdapterView;
@@ -24,14 +26,19 @@ import com.google.android.material.navigation.NavigationBarView;
 public class CreateGoalActivity extends AppCompatActivity {
 
     private String type;
+    private Bundle extras;
+    private int parent;
+    private EditText name, description;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_create_goal);
+        extras = getIntent().getExtras();
+        parent = extras.getInt("parent");
 
-        EditText name = findViewById(R.id.goal_name);
-        EditText description = findViewById(R.id.goal_description);
+        name = findViewById(R.id.goal_name);
+        description = findViewById(R.id.goal_description);
         Spinner dropdown = findViewById(R.id.spinner);
 
         // Populate dropdown with goal types from the type table
@@ -65,16 +72,49 @@ public class CreateGoalActivity extends AppCompatActivity {
             }
         });
 
+        // Attempt to get the parent of the goal
+        // If parent is not set in the bundle then this defaults to -1
+        // If not equal to -1 then the goal has a parent and so the sub goal should not have a dropdown to select type
+        // Type is defaulted to the parent goal type
+        if (parent != -1) {
+            dropdown.setVisibility(View.INVISIBLE);
+        }
+
         Button btn_create = findViewById(R.id.btn_create);
         btn_create.setOnClickListener(view -> {
             ContentValues contentValues = new ContentValues();
             contentValues.put(DatabaseContract.Goal_Table.COLUMN_NAME, name.getText().toString());
             contentValues.put(DatabaseContract.Goal_Table.COLUMN_DESCRIPTION, description.getText().toString());
             contentValues.put(DatabaseContract.Goal_Table.COLUMN_PROGRESS, 0);
-            contentValues.put(DatabaseContract.Goal_Table.COLUMN_TYPE, type);
+            // If parent is assigned in the intent bundle then assign this value in the content values
+            if (parent != -1) {
+                contentValues.put(DatabaseContract.Goal_Table.COLUMN_TYPE, extras.getString("type"));
+                contentValues.put(DatabaseContract.Goal_Table.COLUMN_PARENT, parent);
+            } else {
+                contentValues.put(DatabaseContract.Goal_Table.COLUMN_TYPE, type);
+            }
             getContentResolver().insert(DatabaseContract.Goal_Table.CONTENT_URI, contentValues);
             Intent intent = new Intent(CreateGoalActivity.this, MainActivity.class);
             startActivity(intent);
         });
+    }
+
+    @Override
+    protected void onStop() {
+        super.onStop();
+        SharedPreferences myPref = getSharedPreferences(getString(R.string.goal_preferences), MODE_PRIVATE);
+        SharedPreferences.Editor myEditor = myPref.edit();
+        myEditor.clear();
+        myEditor.putString("name", name.getText().toString());
+        myEditor.putString("description", description.getText().toString());
+        myEditor.commit();
+    }
+
+    @Override
+    protected void onStart() {
+        super.onStart();
+        SharedPreferences myPref = getSharedPreferences(getString(R.string.goal_preferences), MODE_PRIVATE);
+        name.setText(myPref.getString("name", null));
+        description.setText(myPref.getString("description", null));
     }
 }

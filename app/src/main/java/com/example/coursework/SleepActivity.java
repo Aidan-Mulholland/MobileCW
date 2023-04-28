@@ -1,6 +1,7 @@
 package com.example.coursework;
 
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.recyclerview.widget.RecyclerView;
 
 import android.annotation.SuppressLint;
 import android.app.AlarmManager;
@@ -14,22 +15,22 @@ import android.database.Cursor;
 import android.net.Uri;
 import android.os.Bundle;
 
-import android.widget.ArrayAdapter;
 import android.widget.ImageButton;
-import android.widget.ListView;
 import android.widget.Toast;
 
 
 import com.google.android.material.bottomnavigation.BottomNavigationView;
 
 
+import java.util.ArrayList;
 import java.util.Calendar;
 
-public class SleepActivity extends AppCompatActivity {
+public class SleepActivity extends AppCompatActivity implements AlarmRecyclerInterface {
 
-    private ListView alarmsView;
+    private RecyclerView alarmsView;
+    private ArrayList<AlarmModel> alarms;
+    private Alarm_RecyclerViewAdapter adapter;
 
-    @SuppressLint("NonConstantResourceId")
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -69,41 +70,24 @@ public class SleepActivity extends AppCompatActivity {
                 Uri returnUri = getContentResolver().insert(DatabaseContract.Alarm_Table.CONTENT_URI, contentValues);
                 setAlarm(calSet, ContentUris.parseId(returnUri));
                 updateAlarmListView();
-            }, 0, 0, false);
+            }, 0, 0, true);
             timePickerDialog.show();
         });
 
         // alarmsView item listeners
-        alarmsView.setOnItemLongClickListener((adapterView, view, i, l) -> {
-            AlarmModel clickedAlarm = (AlarmModel) adapterView.getItemAtPosition(i);
-            int result = getContentResolver().delete(DatabaseContract.Alarm_Table.CONTENT_URI, DatabaseContract.Alarm_Table._ID + " = " + clickedAlarm.getId(), null);
-            if (result == 1) {
-                Intent intent = new Intent(getBaseContext(), AlarmReceiver.class);
-                PendingIntent pendingIntent = PendingIntent.getBroadcast(getBaseContext(), clickedAlarm.getId(), intent, PendingIntent.FLAG_IMMUTABLE);
+        //alarmsView.setOnItemLongClickListener((adapterView, view, i, l) -> {
+        //    AlarmModel clickedAlarm = (AlarmModel) adapterView.getItemAtPosition(i);
+        //    int result = getContentResolver().delete(DatabaseContract.Alarm_Table.CONTENT_URI, DatabaseContract.Alarm_Table._ID + " = " + clickedAlarm.getId(), null);
+        //    if (result == 1) {
+        //        Intent intent = new Intent(getBaseContext(), AlarmReceiver.class);
+        //        PendingIntent pendingIntent = PendingIntent.getBroadcast(getBaseContext(), clickedAlarm.getId(), intent, PendingIntent.FLAG_IMMUTABLE);
 
-                AlarmManager alarmManager = (AlarmManager)getSystemService(Context.ALARM_SERVICE);
-                alarmManager.cancel(pendingIntent);
-            }
-            updateAlarmListView();
-            return result == 1;
-        });
-        alarmsView.setOnItemClickListener((adapterView, view, i, l) -> {
-            // Get alarm and deactivate in database
-            AlarmModel clickedAlarm = (AlarmModel) adapterView.getItemAtPosition(i);
-            ContentValues contentValues = new ContentValues();
-            contentValues.put("ALARM_ACTIVE", !clickedAlarm.getActive());
-            int result = getContentResolver().update(DatabaseContract.Alarm_Table.CONTENT_URI, contentValues,DatabaseContract.Alarm_Table._ID + " = " + clickedAlarm.getId(), null);
-            // If successful db write then follow up with an alarm cancel intent
-            if (result == 1) {
-                Intent intent = new Intent(getBaseContext(), AlarmReceiver.class);
-                PendingIntent pendingIntent = PendingIntent.getBroadcast(getBaseContext(), clickedAlarm.getId(), intent, PendingIntent.FLAG_IMMUTABLE);
-
-                AlarmManager alarmManager = (AlarmManager)getSystemService(Context.ALARM_SERVICE);
-                alarmManager.cancel(pendingIntent);
-            }
-            // Update alarm list view to represent the change
-            updateAlarmListView();
-        });
+        //        AlarmManager alarmManager = (AlarmManager)getSystemService(Context.ALARM_SERVICE);
+        //        alarmManager.cancel(pendingIntent);
+        //    }
+        //    updateAlarmListView();
+        //    return result == 1;
+        //});
 
         BottomNavigationView nav = findViewById(R.id.bottomNavigationView);
         nav.getMenu().findItem(R.id.sleep).setChecked(true);
@@ -129,11 +113,12 @@ public class SleepActivity extends AppCompatActivity {
     private void setAlarm(Calendar targetCal, long id){
         Toast.makeText(SleepActivity.this, "Made alarm", Toast.LENGTH_SHORT).show();
 
-        Intent intent = new Intent(getBaseContext(), AlarmReceiver.class);
-        PendingIntent pendingIntent = PendingIntent.getBroadcast(getBaseContext(), (int) id, intent, PendingIntent.FLAG_IMMUTABLE);
+        Intent intent = new Intent(SleepActivity.this, AlarmReceiver.class);
+        PendingIntent pendingIntent = PendingIntent.getBroadcast(SleepActivity.this, (int) id, intent, PendingIntent.FLAG_IMMUTABLE);
 
         AlarmManager alarmManager = (AlarmManager)getSystemService(Context.ALARM_SERVICE);
-        alarmManager.setRepeating(AlarmManager.RTC_WAKEUP, targetCal.getTimeInMillis(), AlarmManager.INTERVAL_DAY, pendingIntent);
+        alarmManager.setRepeating(AlarmManager.RTC_WAKEUP, targetCal.getTimeInMillis(), AlarmManager.INTERVAL_DAY ,pendingIntent);
+        requestPermissions(new String[]{ "android.permission.POST_NOTIFICATIONS" }, 1);
     }
 
     private void updateAlarmListView() {
@@ -142,24 +127,71 @@ public class SleepActivity extends AppCompatActivity {
                 null,
                 null,
                 null,
-                null
+                DatabaseContract.Alarm_Table.COLUMN_TIME + " DESC"
         );
 
-        ArrayAdapter<AlarmModel> alarmsAdapter = new ArrayAdapter<>(SleepActivity.this, android.R.layout.simple_list_item_1);
+        // Query for alarms in database
+        alarms = new ArrayList<>();
         if (cursor.moveToFirst()) {
             do {
                 // Create alarm object for each row in cursor
                 @SuppressLint("Range") int alarmID = cursor.getInt(cursor.getColumnIndex(DatabaseContract.Alarm_Table._ID));
                 @SuppressLint("Range") String timeText = cursor.getString(cursor.getColumnIndex(DatabaseContract.Alarm_Table.COLUMN_TIME_TEXT));
-                @SuppressLint("Range") int timeInt = cursor.getInt(cursor.getColumnIndex(DatabaseContract.Alarm_Table.COLUMN_TIME));
+                @SuppressLint("Range") long timeInt = cursor.getInt(cursor.getColumnIndex(DatabaseContract.Alarm_Table.COLUMN_TIME));
                 @SuppressLint("Range") boolean active = cursor.getInt(cursor.getColumnIndex(DatabaseContract.Alarm_Table.COLUMN_ACTIVE)) == 1;
 
                 // Add each alarm model to array adapter
                 AlarmModel alarm = new AlarmModel(alarmID, timeText, timeInt, active);
-                alarmsAdapter.add(alarm);
+                alarms.add(alarm);
             } while (cursor.moveToNext());
         }
-        alarmsView.setAdapter(alarmsAdapter);
         cursor.close();
+
+        // Set recycler view adapter
+        adapter = new Alarm_RecyclerViewAdapter(SleepActivity.this, alarms, this);
+        alarmsView.setAdapter(adapter);
+    }
+
+    @Override
+    public void onItemClick(int position) {
+        AlarmModel alarm = alarms.get(position);
+        alarm.setActive(!alarm.getActive());
+
+        // Attempt update to database
+        ContentValues contentValues = new ContentValues();
+        contentValues.put("ALARM_ACTIVE", alarm.getActive());
+        int result = getContentResolver().update(DatabaseContract.Alarm_Table.CONTENT_URI, contentValues,DatabaseContract.Alarm_Table._ID + " = " + alarm.getId(), null);
+        // If successful update, cancel the alarm using AlarmManager
+        if (result == 1) {
+            Intent intent = new Intent(SleepActivity.this, AlarmReceiver.class);
+            PendingIntent pendingIntent = PendingIntent.getBroadcast(SleepActivity.this, alarm.getId(), intent, PendingIntent.FLAG_IMMUTABLE);
+
+            AlarmManager alarmManager = (AlarmManager) getSystemService(Context.ALARM_SERVICE);
+            // If alarm toggled on, set new repeating alarm at alarm model time
+            if (alarm.getActive()) {
+                alarmManager.setRepeating(AlarmManager.RTC_WAKEUP, alarm.getTimeInt(), AlarmManager.INTERVAL_DAY, pendingIntent);
+                // If alarm toggled off, cancel alarm
+            } else {
+                alarmManager.cancel(pendingIntent);
+            }
+        }
+    }
+
+    @Override
+    public boolean onLongClick(int position) {
+        AlarmModel alarm = alarms.get(position);
+
+        int result = getContentResolver().delete(DatabaseContract.Alarm_Table.CONTENT_URI, DatabaseContract.Alarm_Table._ID + " = " + alarm.getId(), null);
+        // If successful update, cancel the alarm using AlarmManager
+        if (result == 1) {
+            Intent intent = new Intent(SleepActivity.this, AlarmReceiver.class);
+            PendingIntent pendingIntent = PendingIntent.getBroadcast(SleepActivity.this, alarm.getId(), intent, PendingIntent.FLAG_IMMUTABLE);
+
+            AlarmManager alarmManager = (AlarmManager) getSystemService(Context.ALARM_SERVICE);
+            alarmManager.cancel(pendingIntent);
+        }
+        alarms.remove(alarm);
+        adapter.notifyDataSetChanged();
+        return result == 1;
     }
 }

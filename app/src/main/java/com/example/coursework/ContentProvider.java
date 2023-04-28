@@ -46,11 +46,11 @@ public class ContentProvider extends android.content.ContentProvider {
                 cursor = db.query(
                         DatabaseContract.Goal_Table.TABLE_NAME,
                         projection,
+                        selection,
+                        selectionArgs,
                         null,
                         null,
-                        null,
-                        null,
-                        null
+                        sortOrder
                 );
                 break;
             }
@@ -58,11 +58,11 @@ public class ContentProvider extends android.content.ContentProvider {
                 cursor = db.query(
                         DatabaseContract.Type_Table.TABLE_NAME,
                         projection,
+                        selection,
+                        selectionArgs,
                         null,
                         null,
-                        null,
-                        null,
-                        null
+                        sortOrder
                 );
                 break;
             }
@@ -70,11 +70,11 @@ public class ContentProvider extends android.content.ContentProvider {
                 cursor = db.query(
                         DatabaseContract.Journal_Table.TABLE_NAME,
                         projection,
+                        selection,
+                        selectionArgs,
                         null,
                         null,
-                        null,
-                        null,
-                        null
+                        sortOrder
                 );
                 break;
             }
@@ -82,11 +82,11 @@ public class ContentProvider extends android.content.ContentProvider {
                 cursor = db.query(
                         DatabaseContract.Alarm_Table.TABLE_NAME,
                         projection,
+                        selection,
+                        selectionArgs,
                         null,
                         null,
-                        null,
-                        null,
-                        null
+                        sortOrder
                 );
                 break;
             }
